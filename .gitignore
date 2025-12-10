@@ -21,3 +21,10 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Setup guides (may contain sensitive info)
+SUPABASE_SETUP.md
+
+# Frontend build output
+frontend/dist/
+frontend/node_modules/
