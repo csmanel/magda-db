@@ -1,0 +1,23 @@
+# Development databases
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-*
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
