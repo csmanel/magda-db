@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { tablesAPI } from '../services/api';
+import { tablesAPI, rowsAPI } from '../services/api';
 import mBone from '../assets/m-bone.png';
 
 function Layout({ children }) {
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [newTable, setNewTable] = useState({
     name: '',
     description: '',
     columns: [{ name: '', type: 'text' }],
+    rows: [],
   });
   const { id } = useParams();
   const navigate = useNavigate();
@@ -46,8 +48,17 @@ function Layout({ children }) {
         name: '',
         description: '',
         columns: [{ name: '', type: 'text' }],
+        rows: [],
       });
       setShowCreateModal(false);
+
+      // Create initial rows if any data was provided
+      if (newTable.rows.length > 0) {
+        for (const rowData of newTable.rows) {
+          await rowsAPI.create(response.data.id, { data: rowData });
+        }
+      }
+
       await fetchTables();
       navigate(`/tables/${response.data.id}`);
     } catch (err) {
@@ -82,14 +93,62 @@ function Layout({ children }) {
   };
 
   const removeColumn = (index) => {
+    const columnName = newTable.columns[index].name;
     const updatedColumns = newTable.columns.filter((_, i) => i !== index);
-    setNewTable({ ...newTable, columns: updatedColumns });
+    const updatedRows = newTable.rows.map((row) => {
+      const newData = { ...row };
+      delete newData[columnName];
+      return newData;
+    });
+    setNewTable({ ...newTable, columns: updatedColumns, rows: updatedRows });
+  };
+
+  const addRow = () => {
+    const emptyRow = {};
+    newTable.columns.forEach((col) => {
+      emptyRow[col.name] = '';
+    });
+    setNewTable({ ...newTable, rows: [...newTable.rows, emptyRow] });
+  };
+
+  const removeRow = (index) => {
+    const updatedRows = newTable.rows.filter((_, i) => i !== index);
+    setNewTable({ ...newTable, rows: updatedRows });
+  };
+
+  const updateCell = (rowIndex, columnName, value) => {
+    const updatedRows = [...newTable.rows];
+    updatedRows[rowIndex] = { ...updatedRows[rowIndex], [columnName]: value };
+    setNewTable({ ...newTable, rows: updatedRows });
   };
 
   return (
     <div className="flex h-screen bg-neutral-950 text-neutral-100">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setShowSidebar(!showSidebar)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-stone-700 rounded-lg text-white"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Overlay */}
+      {showSidebar && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col">
+      <aside className={`
+        w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col
+        fixed md:relative inset-y-0 left-0 z-40
+        transform transition-transform duration-300 ease-in-out
+        ${showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
         <div className="p-6 border-b border-neutral-800">
           <Link to="/" className="flex space-x-2">
             <div className="w-8 h-8 bg-stone-700 rounded-lg flex items-center justify-center">
@@ -187,13 +246,13 @@ function Layout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <main className="flex-1 overflow-hidden w-full md:w-auto">{children}</main>
 
       {/* Create Table Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
           <div className="bg-neutral-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-neutral-800">
-            <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
+            <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Create New Table</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -215,11 +274,9 @@ function Layout({ children }) {
               </button>
             </div>
 
-            <form onSubmit={handleCreateTable} className="p-6 space-y-6">
+            <form onSubmit={handleCreateTable} className="p-4 sm:p-6 space-y-4">
+              {/* Table Header */}
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Table Name
-                </label>
                 <input
                   type="text"
                   value={newTable.name}
@@ -227,97 +284,140 @@ function Layout({ children }) {
                     setNewTable({ ...newTable, name: e.target.value })
                   }
                   required
-                  className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg focus:ring-2 focus:ring-stone-600 focus:border-transparent text-white"
-                  placeholder="e.g., Contacts, Projects..."
+                  className="text-lg sm:text-xl font-semibold bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-neutral-100 focus:outline-none focus:ring-1 focus:ring-stone-600 w-full"
+                  placeholder="Table name..."
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Description (optional)
-                </label>
                 <textarea
                   value={newTable.description}
                   onChange={(e) =>
                     setNewTable({ ...newTable, description: e.target.value })
                   }
-                  rows="2"
-                  className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg focus:ring-2 focus:ring-stone-600 focus:border-transparent text-white"
-                  placeholder="What is this table for?"
+                  rows="1"
+                  className="text-xs bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-neutral-400 mt-2 focus:outline-none focus:ring-1 focus:ring-stone-600 w-full resize-none"
+                  placeholder="Description (optional)..."
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Columns
-                </label>
-                <div className="space-y-2">
-                  {newTable.columns.map((col, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Column name"
-                        value={col.name}
-                        onChange={(e) =>
-                          updateColumn(index, 'name', e.target.value)
-                        }
-                        className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg focus:ring-2 focus:ring-stone-600 focus:border-transparent text-white text-sm"
-                      />
-                      <select
-                        value={col.type}
-                        onChange={(e) =>
-                          updateColumn(index, 'type', e.target.value)
-                        }
-                        className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg focus:ring-2 focus:ring-stone-600 focus:border-transparent text-white text-sm"
-                      >
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                        <option value="date">Date</option>
-                      </select>
-                      {newTable.columns.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeColumn(index)}
-                          className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+              {/* Table Preview */}
+              <div className="bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg overflow-hidden">
+                <div className="overflow-auto max-h-[360px]">
+                  <table className="w-full border-collapse">
+                    <thead className="bg-neutral-800 border-b border-neutral-700 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400 uppercase border-r border-neutral-700 w-12">
+                          #
+                        </th>
+                        {newTable.columns.map((col, index) => (
+                          <th
+                            key={index}
+                            className="px-4 py-2 text-left text-xs font-medium text-neutral-300 uppercase border-r border-neutral-700 min-w-[180px]"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
+                            <div className="flex items-center justify-between gap-2">
+                              <input
+                                type="text"
+                                value={col.name}
+                                onChange={(e) =>
+                                  updateColumn(index, 'name', e.target.value)
+                                }
+                                placeholder="Column name..."
+                                className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-neutral-300 placeholder-neutral-600 text-xs font-medium uppercase"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeColumn(index)}
+                                className="text-neutral-500 hover:text-neutral-300 transition-colors text-base"
+                                title="Remove column"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </th>
+                        ))}
+                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-400 uppercase w-16">
+
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-800">
+                      {newTable.rows.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={newTable.columns.length + 2}
+                            className="px-4 py-8 text-center text-sm text-neutral-500"
+                          >
+                            No rows yet. Click "+ Add Row" to add data.
+                          </td>
+                        </tr>
+                      ) : (
+                        newTable.rows.map((row, rowIndex) => (
+                          <tr key={rowIndex}>
+                            <td className="px-4 py-2.5 text-sm text-neutral-500 border-r border-neutral-800 w-12">
+                              {rowIndex + 1}
+                            </td>
+                            {newTable.columns.map((col) => (
+                              <td
+                                key={col.name}
+                                className="px-4 py-2.5 border-r border-neutral-800 min-w-[180px]"
+                              >
+                                <input
+                                  type="text"
+                                  value={row[col.name] || ''}
+                                  onChange={(e) =>
+                                    updateCell(rowIndex, col.name, e.target.value)
+                                  }
+                                  className="w-full px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-neutral-100 text-sm focus:outline-none focus:ring-1 focus:ring-stone-600"
+                                  placeholder="Enter value..."
+                                />
+                              </td>
+                            ))}
+                            <td className="px-4 py-2.5 w-16">
+                              <button
+                                type="button"
+                                onClick={() => removeRow(rowIndex)}
+                                className="text-neutral-500 hover:text-neutral-300 transition-colors text-lg"
+                                title="Delete row"
+                              >
+                                ×
+                              </button>
+                            </td>
+                          </tr>
+                        ))
                       )}
-                    </div>
-                  ))}
+                    </tbody>
+                  </table>
                 </div>
-                <button
-                  type="button"
-                  onClick={addColumn}
-                  className="mt-3 text-sm text-stone-600 hover:text-stone-500 transition-colors"
-                >
-                  + Add Column
-                </button>
+                <div className="border-t border-neutral-800 px-4 py-2 bg-neutral-800">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={addColumn}
+                      className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-100 rounded-md text-sm font-medium transition-colors"
+                    >
+                      + Add Column
+                    </button>
+                    <button
+                      type="button"
+                      onClick={addRow}
+                      className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-100 rounded-md text-sm font-medium transition-colors"
+                    >
+                      + Add Row
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium transition-colors"
+                  className="flex-1 px-4 py-2.5 sm:py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-stone-700 hover:bg-stone-800 text-white rounded-lg font-medium transition-colors"
+                  className="flex-1 px-4 py-2.5 sm:py-2 bg-stone-700 hover:bg-stone-800 text-white rounded-lg font-medium transition-colors"
                 >
                   Create Table
                 </button>
