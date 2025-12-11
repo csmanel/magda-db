@@ -10,6 +10,10 @@ function TableView() {
   const [error, setError] = useState(null)
   const [editingCell, setEditingCell] = useState(null)
   const [editValue, setEditValue] = useState('')
+  const [editingTableName, setEditingTableName] = useState(false)
+  const [editingTableDesc, setEditingTableDesc] = useState(false)
+  const [tableName, setTableName] = useState('')
+  const [tableDesc, setTableDesc] = useState('')
 
   useEffect(() => {
     fetchTableData()
@@ -21,12 +25,114 @@ function TableView() {
       const response = await tablesAPI.getOne(id)
       setTable(response.data)
       setRows(response.data.rows || [])
+      setTableName(response.data.name)
+      setTableDesc(response.data.description || '')
       setError(null)
     } catch (err) {
       setError('Failed to load table')
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleTableNameBlur = async () => {
+    if (!tableName.trim() || tableName === table.name) {
+      setTableName(table.name)
+      setEditingTableName(false)
+      return
+    }
+
+    try {
+      await tablesAPI.update(id, {
+        name: tableName,
+        description: table.description,
+        schema: table.schema
+      })
+      setTable({ ...table, name: tableName })
+      setEditingTableName(false)
+    } catch (err) {
+      setError('Failed to update table name')
+      console.error(err)
+      setTableName(table.name)
+      setEditingTableName(false)
+    }
+  }
+
+  const handleTableDescBlur = async () => {
+    if (tableDesc === (table.description || '')) {
+      setEditingTableDesc(false)
+      return
+    }
+
+    try {
+      await tablesAPI.update(id, {
+        name: table.name,
+        description: tableDesc,
+        schema: table.schema
+      })
+      setTable({ ...table, description: tableDesc })
+      setEditingTableDesc(false)
+    } catch (err) {
+      setError('Failed to update table description')
+      console.error(err)
+      setTableDesc(table.description || '')
+      setEditingTableDesc(false)
+    }
+  }
+
+  const handleAddColumn = async () => {
+    const columnName = prompt('Enter column name:')
+    if (!columnName || !columnName.trim()) return
+
+    const newSchema = {
+      columns: [...(table.schema?.columns || []), { name: columnName.trim(), type: 'text' }]
+    }
+
+    try {
+      await tablesAPI.update(id, {
+        name: table.name,
+        description: table.description,
+        schema: newSchema
+      })
+      setTable({ ...table, schema: newSchema })
+    } catch (err) {
+      setError('Failed to add column')
+      console.error(err)
+    }
+  }
+
+  const handleRemoveColumn = async (columnName) => {
+    if (!confirm(`Remove column "${columnName}"? This will delete all data in this column.`)) return
+
+    const newSchema = {
+      columns: table.schema.columns.filter(col => col.name !== columnName)
+    }
+
+    // Remove column data from all rows
+    const updatedRows = rows.map(row => {
+      const newData = { ...row.data }
+      delete newData[columnName]
+      return { ...row, data: newData }
+    })
+
+    try {
+      await tablesAPI.update(id, {
+        name: table.name,
+        description: table.description,
+        schema: newSchema
+      })
+
+      // Update all rows to remove the column data
+      for (const row of updatedRows) {
+        await rowsAPI.update(id, row.id, { data: row.data })
+      }
+
+      setTable({ ...table, schema: newSchema })
+      setRows(updatedRows)
+    } catch (err) {
+      setError('Failed to remove column')
+      console.error(err)
     }
   }
 
@@ -118,132 +224,163 @@ function TableView() {
   const columns = table.schema?.columns || []
 
   return (
-    <div className="h-full flex flex-col bg-gray-950">
+    <div className="h-full flex flex-col bg-gray-950 p-6">
       {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900">
-        <div className="px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-white mb-1">{table.name}</h1>
-              {table.description && (
-                <p className="text-sm text-gray-400">{table.description}</p>
-              )}
-            </div>
+      <div className="mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex-1 mr-4">
+            {editingTableName ? (
+              <input
+                type="text"
+                value={tableName}
+                onChange={(e) => setTableName(e.target.value)}
+                onBlur={handleTableNameBlur}
+                onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                autoFocus
+                className="text-xl font-semibold bg-gray-800 border border-gray-600 rounded px-2 py-1 text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
+              />
+            ) : (
+              <h1
+                onClick={() => setEditingTableName(true)}
+                className="text-xl font-semibold text-gray-100 cursor-pointer hover:text-gray-300 transition-colors"
+              >
+                {table.name}
+              </h1>
+            )}
+            {editingTableDesc ? (
+              <input
+                type="text"
+                value={tableDesc}
+                onChange={(e) => setTableDesc(e.target.value)}
+                onBlur={handleTableDescBlur}
+                onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                autoFocus
+                className="text-xs bg-gray-800 border border-gray-600 rounded px-2 py-1 text-gray-400 mt-0.5 focus:outline-none focus:ring-1 focus:ring-gray-500 w-full max-w-md"
+                placeholder="Add description..."
+              />
+            ) : (
+              <p
+                onClick={() => setEditingTableDesc(true)}
+                className="text-xs text-gray-400 mt-0.5 cursor-pointer hover:text-gray-300 transition-colors"
+              >
+                {table.description || 'Add description...'}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAddColumn}
+              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-md text-sm font-medium transition-colors"
+            >
+              + Add Column
+            </button>
             <button
               onClick={handleAddRow}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-md text-sm font-medium transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Row
+              + Add Row
             </button>
           </div>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table - Floating */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse">
-          <thead className="sticky top-0 bg-gray-900 border-b border-gray-800">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-16">
-                #
-              </th>
-              {columns.map((col, index) => (
-                <th
-                  key={index}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[250px]"
-                >
-                  <div>{col.name}</div>
-                  <div className="text-[10px] text-gray-600 normal-case mt-0.5">{col.type}</div>
-                </th>
-              ))}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-24">
-
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
+        <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg overflow-hidden">
+          <table className="w-full border-collapse">
+            <thead className="bg-gray-800 border-b border-gray-700">
               <tr>
-                <td
-                  colSpan={columns.length + 2}
-                  className="px-6 py-16 text-center text-gray-500"
-                >
-                  No data yet. Click "Add Row" to get started.
-                </td>
-              </tr>
-            ) : (
-              rows.map((row, rowIndex) => (
-                <tr
-                  key={row.id}
-                  className="border-b border-gray-800 hover:bg-gray-900 transition-colors"
-                >
-                  <td className="px-6 py-4 text-sm text-gray-500 font-mono">
-                    {rowIndex + 1}
-                  </td>
-                  {columns.map((col) => {
-                    const isEditing =
-                      editingCell?.rowId === row.id &&
-                      editingCell?.columnName === col.name
-                    const value = row.data?.[col.name] || ''
-
-                    return (
-                      <td key={col.name} className="px-6 py-4">
-                        {isEditing ? (
-                          <input
-                            type={col.type === 'number' ? 'number' : 'text'}
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={handleCellBlur}
-                            onKeyDown={handleKeyDown}
-                            autoFocus
-                            className="w-full px-3 py-2 bg-gray-800 border border-blue-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        ) : (
-                          <div
-                            onClick={() =>
-                              handleCellClick(row.id, col.name, value)
-                            }
-                            className="min-h-[36px] px-3 py-2 text-sm text-gray-300 cursor-pointer hover:bg-gray-800 rounded-lg transition-colors"
-                          >
-                            {value || (
-                              <span className="text-gray-600 italic">
-                                Empty
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                    )
-                  })}
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => handleDeleteRow(row.id)}
-                      className="text-gray-500 hover:text-red-400 transition-colors"
-                      title="Delete row"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase border-r border-gray-700 w-12">
+                  #
+                </th>
+                {columns.map((col, index) => (
+                  <th
+                    key={index}
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase border-r border-gray-700 min-w-[180px]"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{col.name}</span>
+                      <button
+                        onClick={() => handleRemoveColumn(col.name)}
+                        className="text-gray-500 hover:text-gray-300 transition-colors text-base"
+                        title="Remove column"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
+                        ×
+                      </button>
+                    </div>
+                  </th>
+                ))}
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase w-16">
+
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {rows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={columns.length + 2}
+                    className="px-4 py-8 text-center text-sm text-gray-500"
+                  >
+                    No data yet. Click "Add Row" to get started.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                rows.map((row, rowIndex) => (
+                  <tr key={row.id}>
+                    <td className="px-4 py-2.5 text-sm text-gray-500 border-r border-gray-800">
+                      {rowIndex + 1}
+                    </td>
+                    {columns.map((col) => {
+                      const isEditing =
+                        editingCell?.rowId === row.id &&
+                        editingCell?.columnName === col.name
+                      const value = row.data?.[col.name] || ''
+
+                      return (
+                        <td key={col.name} className="px-4 py-2.5 border-r border-gray-800">
+                          {isEditing ? (
+                            <input
+                              type={col.type === 'number' ? 'number' : 'text'}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={handleCellBlur}
+                              onKeyDown={handleKeyDown}
+                              autoFocus
+                              className="w-full px-2 py-1 bg-gray-800 border border-gray-600 rounded text-gray-100 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500"
+                            />
+                          ) : (
+                            <div
+                              onClick={() =>
+                                handleCellClick(row.id, col.name, value)
+                              }
+                              className="text-sm text-gray-300 cursor-pointer bg-gray-900 hover:bg-gray-800 px-2 py-1 rounded transition-colors -mx-2 -my-1"
+                            >
+                              {value || (
+                                <span className="text-gray-600 italic text-xs">
+                                  Empty
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      )
+                    })}
+                    <td className="px-4 py-2.5">
+                      <button
+                        onClick={() => handleDeleteRow(row.id)}
+                        className="text-gray-500 hover:text-gray-300 transition-colors text-lg"
+                        title="Delete row"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
