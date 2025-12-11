@@ -224,7 +224,7 @@ function TableView() {
   const columns = table.schema?.columns || []
 
   return (
-    <div className="h-full flex flex-col bg-gray-950 p-6">
+    <div className="h-full flex flex-col bg-neutral-950 p-6">
       {/* Header */}
       <div className="mb-4">
         <div className="flex items-center justify-between">
@@ -237,7 +237,7 @@ function TableView() {
                 onBlur={handleTableNameBlur}
                 onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
                 autoFocus
-                className="text-xl font-semibold bg-gray-800 border border-gray-600 rounded px-2 py-1 text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                className="text-xl font-semibold bg-neutral-800 border border-gray-600 rounded px-2 py-1 text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
             ) : (
               <h1
@@ -255,7 +255,7 @@ function TableView() {
                 onBlur={handleTableDescBlur}
                 onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
                 autoFocus
-                className="text-xs bg-gray-800 border border-gray-600 rounded px-2 py-1 text-gray-400 mt-0.5 focus:outline-none focus:ring-1 focus:ring-gray-500 w-full max-w-md"
+                className="text-xs bg-neutral-800 border border-gray-600 rounded px-2 py-1 text-gray-400 mt-0.5 focus:outline-none focus:ring-1 focus:ring-gray-500 w-full max-w-md"
                 placeholder="Add description..."
               />
             ) : (
@@ -286,17 +286,17 @@ function TableView() {
 
       {/* Table - Floating */}
       <div className="flex-1 overflow-auto">
-        <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg overflow-hidden">
           <table className="w-full border-collapse">
-            <thead className="bg-gray-800 border-b border-gray-700">
+            <thead className="bg-neutral-800 border-b border-neutral-700">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase border-r border-gray-700 w-12">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase border-r border-neutral-700 w-12">
                   #
                 </th>
                 {columns.map((col, index) => (
                   <th
                     key={index}
-                    className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase border-r border-gray-700 min-w-[180px]"
+                    className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase border-r border-neutral-700 min-w-[180px]"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span>{col.name}</span>
@@ -328,7 +328,7 @@ function TableView() {
               ) : (
                 rows.map((row, rowIndex) => (
                   <tr key={row.id}>
-                    <td className="px-4 py-2.5 text-sm text-gray-500 border-r border-gray-800">
+                    <td className="px-4 py-2.5 text-sm text-gray-500 border-r border-neutral-800">
                       {rowIndex + 1}
                     </td>
                     {columns.map((col) => {
@@ -338,7 +338,7 @@ function TableView() {
                       const value = row.data?.[col.name] || ''
 
                       return (
-                        <td key={col.name} className="px-4 py-2.5 border-r border-gray-800">
+                        <td key={col.name} className="px-4 py-2.5 border-r border-neutral-800">
                           {isEditing ? (
                             <input
                               type={col.type === 'number' ? 'number' : 'text'}
@@ -347,14 +347,14 @@ function TableView() {
                               onBlur={handleCellBlur}
                               onKeyDown={handleKeyDown}
                               autoFocus
-                              className="w-full px-2 py-1 bg-gray-800 border border-gray-600 rounded text-gray-100 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500"
+                              className="w-full px-2 py-1 bg-neutral-800 border border-gray-600 rounded text-gray-100 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500"
                             />
                           ) : (
                             <div
                               onClick={() =>
                                 handleCellClick(row.id, col.name, value)
                               }
-                              className="text-sm text-gray-300 cursor-pointer bg-gray-900 hover:bg-gray-800 px-2 py-1 rounded transition-colors -mx-2 -my-1"
+                              className="text-sm text-gray-300 cursor-pointer bg-neutral-900 hover:bg-neutral-800 px-2 py-1 rounded transition-colors -mx-2 -my-1"
                             >
                               {value || (
                                 <span className="text-gray-600 italic text-xs">

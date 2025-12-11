@@ -87,12 +87,12 @@ function Layout({ children }) {
   };
 
   return (
-    <div className="flex h-screen bg-gray-950 text-gray-100">
+    <div className="flex h-screen bg-neutral-950 text-neutral-100">
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
-        <div className="p-6 border-b border-gray-800">
+      <aside className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col">
+        <div className="p-6 border-b border-neutral-800">
           <Link to="/" className="flex space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-stone-700 to-amber-900 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-stone-700 rounded-lg flex items-center justify-center">
               <img
                 src={mBone}
                 alt="Magda DB Logo"
@@ -110,7 +110,7 @@ function Layout({ children }) {
             </span>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="text-stone-600 hover:text-amber-500 transition-colors"
+              className="text-stone-600 hover:text-stone-500 transition-colors"
               title="Create new table"
             >
               <svg
@@ -141,8 +141,8 @@ function Layout({ children }) {
                     to={`/tables/${table.id}`}
                     className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
                       id === table.id.toString()
-                        ? 'bg-amber-700 text-white'
-                        : 'text-gray-300 hover:bg-gray-800'
+                        ? 'bg-stone-700 text-white'
+                        : 'text-neutral-300 hover:bg-neutral-800'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -176,10 +176,10 @@ function Layout({ children }) {
           )}
         </div>
 
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-neutral-800">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="w-full px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-sm font-medium transition-colors"
+            className="w-full px-4 py-2 bg-stone-700 hover:bg-stone-800 text-white rounded-lg text-sm font-medium transition-colors"
           >
             + New Table
           </button>
@@ -192,8 +192,8 @@ function Layout({ children }) {
       {/* Create Table Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-800">
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+          <div className="bg-neutral-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-neutral-800">
+            <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Create New Table</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -217,7 +217,7 @@ function Layout({ children }) {
 
             <form onSubmit={handleCreateTable} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
                   Table Name
                 </label>
                 <input
@@ -227,13 +227,13 @@ function Layout({ children }) {
                     setNewTable({ ...newTable, name: e.target.value })
                   }
                   required
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent text-white"
+                  className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg focus:ring-2 focus:ring-stone-600 focus:border-transparent text-white"
                   placeholder="e.g., Contacts, Projects..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
                   Description (optional)
                 </label>
                 <textarea
@@ -242,13 +242,13 @@ function Layout({ children }) {
                     setNewTable({ ...newTable, description: e.target.value })
                   }
                   rows="2"
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent text-white"
+                  className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg focus:ring-2 focus:ring-stone-600 focus:border-transparent text-white"
                   placeholder="What is this table for?"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-neutral-300 mb-2">
                   Columns
                 </label>
                 <div className="space-y-2">
@@ -261,14 +261,14 @@ function Layout({ children }) {
                         onChange={(e) =>
                           updateColumn(index, 'name', e.target.value)
                         }
-                        className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent text-white text-sm"
+                        className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg focus:ring-2 focus:ring-stone-600 focus:border-transparent text-white text-sm"
                       />
                       <select
                         value={col.type}
                         onChange={(e) =>
                           updateColumn(index, 'type', e.target.value)
                         }
-                        className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent text-white text-sm"
+                        className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg focus:ring-2 focus:ring-stone-600 focus:border-transparent text-white text-sm"
                       >
                         <option value="text">Text</option>
                         <option value="number">Number</option>
@@ -301,7 +301,7 @@ function Layout({ children }) {
                 <button
                   type="button"
                   onClick={addColumn}
-                  className="mt-3 text-sm text-amber-600 hover:text-amber-500 transition-colors"
+                  className="mt-3 text-sm text-stone-600 hover:text-stone-500 transition-colors"
                 >
                   + Add Column
                 </button>
@@ -311,13 +311,13 @@ function Layout({ children }) {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                  className="flex-1 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-lg font-medium transition-colors"
+                  className="flex-1 px-4 py-2 bg-stone-700 hover:bg-stone-800 text-white rounded-lg font-medium transition-colors"
                 >
                   Create Table
                 </button>
