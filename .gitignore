@@ -25,6 +25,6 @@ Thumbs.db
 # Setup guides (may contain sensitive info)
 SUPABASE_SETUP.md
 
-# Frontend build output
-frontend/dist/
-frontend/node_modules/
+# Build output
+dist/
+node_modules/
